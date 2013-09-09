@@ -20,6 +20,7 @@
     "commander": "~2.0.0",
     "jsonfile": "~1.0.0",
     "sync-prompt": "~0.1.0",
-    "async": "~0.2.9"
+    "async": "~0.2.9",
+    "detect-amd": "~1.0.0"
   }
 }
