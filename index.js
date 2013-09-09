@@ -31,7 +31,7 @@ function isIgnored(pkg) {
 function createShimModule(pkg) {
   var name = pkg.endpoint.name;
   console.log('# creating shim module for '+name);
-  var global = prompt('What global does '+name+' export? ('+name+'): ');
+  var global = prompt('> what global does '+name+' export? ('+name+'): ');
   if (global === '') global = name;
   var dependencies = Object.keys(pkg.dependencies);
   var code = fs.readFileSync(pkg.canonicalDir+'/'+getMain(pkg)).toString();
