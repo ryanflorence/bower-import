@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "install and import modules without fuss",
   "main": "index.js",
+  "bin": {
+    "bower-import": "./bin/bower-import"
+  },
   "scripts": {
     "test": "npm test"
   },
@@ -17,10 +20,8 @@
   },
   "dependencies": {
     "bower": "~1.2.5",
-    "commander": "~2.0.0",
-    "jsonfile": "~1.0.0",
     "sync-prompt": "~0.1.0",
-    "async": "~0.2.9",
-    "detect-amd": "~1.0.0"
+    "detect-amd": "~1.0.0",
+    "detect-globals": "0.0.0"
   }
 }

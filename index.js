@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var bower = require('bower');
 var detectAmd = require('detect-amd');
+var detectGlobals = require('detect-globals');
 var prompt = require('sync-prompt').prompt;
 
 exports.project = function() {
@@ -14,9 +15,10 @@ exports.project = function() {
 var single = exports.single = function(pkg) {
   if (isIgnored(pkg)) return;
   var main = getMain(pkg);
-  var amd = detectAmd.fromFile(pkg.canonicalDir+'/'+main);
+  var mainPath = pkg.canonicalDir+'/'+main;
+  var amd = detectAmd.fromFile(mainPath);
   if (amd === false) {
-    createShimModule(pkg);
+    createShimModule(pkg, mainPath);
   } else if (amd.hasRelativeDeps) {
     createAdapterModule(pkg);
   } else {
@@ -28,11 +30,20 @@ function isIgnored(pkg) {
   return pkg.endpoint.name === 'requirejs';
 }
 
-function createShimModule(pkg) {
+function createShimModule(pkg, mainPath) {
   var name = pkg.endpoint.name;
   console.log('# creating shim module for '+name);
-  var global = prompt('> what global does '+name+' export? ('+name+'): ');
-  if (global === '') global = name;
+  var globals = detectGlobals.fromFile(mainPath);
+  var filtered = globals.filter(function(global) {
+    return global && global.toLowerCase() === name;
+  });
+  var global;
+  if (filtered.length) {
+    global = filtered[0];
+  } else {
+    global = prompt('> what global does '+name+' export? ('+name+'): ');
+    if (global === '') global = name;
+  }
   var dependencies = Object.keys(pkg.dependencies);
   var code = fs.readFileSync(pkg.canonicalDir+'/'+getMain(pkg)).toString();
   var src = "// wrapped by bower-import\n";
@@ -60,11 +71,11 @@ function copyMain(pkg) {
 }
 
 function getMain(dep) {
-  if ('string' == typeof dep.pkgMeta.main) {
-    return dep.pkgMeta.main;
-  } else {
-    // TODO: prompt for which one to use
+  if (Array.isArray(dep.pkgMeta.main)) {
     return dep.pkgMeta.main[0];
+  } else {
+    return dep.pkgMeta.main;
+    // TODO: prompt for which one to use
   }
 }
 
