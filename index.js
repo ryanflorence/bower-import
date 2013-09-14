@@ -35,7 +35,7 @@ function createShimModule(pkg, mainPath) {
   console.log('# creating shim module for '+name);
   var globals = detectGlobals.fromFile(mainPath);
   var filtered = globals.filter(function(global) {
-    return global && global.toLowerCase() === name;
+    return global && global.toLowerCase() === name.replace(/\.js$/, '');
   });
   var global;
   if (filtered.length) {
@@ -71,21 +71,36 @@ function copyMain(pkg) {
 }
 
 function getMain(dep) {
+  var main;
   if (Array.isArray(dep.pkgMeta.main)) {
-    return dep.pkgMeta.main[0];
+    main = dep.pkgMeta.main[0];
+  } else if (dep.pkgMeta.main) {
+    main = dep.pkgMeta.main;
+  } else {
+    main = findMainFromPackageJson(dep) ||
+           findMainFromPackageFiles(dep) ||
+           promptForMain(dep);
   }
-  if (dep.pkgMeta.main) {
-    return dep.pkgMeta.main;
+  if (!main.match(/\.js$/)) {
+    main = main+'.js';
   }
-  var main = findMainFromPackageFiles(dep);
-  if (main) {
-    return main;
+  return main;
+}
+
+function findMainFromPackageJson(dep) {
+  var filePath = dep.canonicalDir+'/package.json';
+  if (fs.existsSync(filePath)) {
+    var json = JSON.parse(fs.readFileSync(filePath));
+    if (json.main) {
+      // cjs maybe? can just wrap in define(['require', 'module', 'exports'] ...)
+      return json.main;
+    }
   }
-  return promptForMain(dep);
+  return false;
 }
 
 function findMainFromPackageFiles(dep) {
-  var name = dep.endpoint.name;
+  var name = dep.endpoint.name.replace(/\.js/, '');
   var files = fs.readdirSync(dep.canonicalDir);
   for (var i = 0, l = files.length; i < l; i++) {
     if (files[i].toLowerCase() === name+'.js') {
@@ -97,7 +112,9 @@ function findMainFromPackageFiles(dep) {
 
 function promptForMain(dep) {
   var userFile = prompt('> no main file detected for '+dep.endpoint.name+'. Please specify the file to use: ');
-  if (path.exists(dep.canonicalDir+'/'+userFile)) {
+  if (fs.existsSync(dep.canonicalDir+'/'+userFile)) {
+    // yeah yeah, mutating state, but now we won't ask for it twice
+    dep.pkgMeta.main = userFile;
     return userFile;
   }
   return promptForMain(dep);
