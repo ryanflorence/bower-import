@@ -73,10 +73,34 @@ function copyMain(pkg) {
 function getMain(dep) {
   if (Array.isArray(dep.pkgMeta.main)) {
     return dep.pkgMeta.main[0];
-  } else {
-    return dep.pkgMeta.main;
-    // TODO: prompt for which one to use
   }
+  if (dep.pkgMeta.main) {
+    return dep.pkgMeta.main;
+  }
+  var main = findMainFromPackageFiles(dep);
+  if (main) {
+    return main;
+  }
+  return promptForMain(dep);
+}
+
+function findMainFromPackageFiles(dep) {
+  var name = dep.endpoint.name;
+  var files = fs.readdirSync(dep.canonicalDir);
+  for (var i = 0, l = files.length; i < l; i++) {
+    if (files[i].toLowerCase() === name+'.js') {
+      return files[i];
+    }
+  }
+  return false;
+}
+
+function promptForMain(dep) {
+  var userFile = prompt('> no main file detected for '+dep.endpoint.name+'. Please specify the file to use: ');
+  if (path.exists(dep.canonicalDir+'/'+userFile)) {
+    return userFile;
+  }
+  return promptForMain(dep);
 }
 
 function flatten(deps, list) {
