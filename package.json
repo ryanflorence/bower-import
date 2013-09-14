@@ -22,6 +22,7 @@
     "bower": "~1.2.5",
     "sync-prompt": "~0.1.0",
     "detect-amd": "~1.0.0",
-    "detect-globals": "0.0.0"
+    "detect-globals": "0.0.0",
+    "cli-color": "~0.2.2"
   }
 }

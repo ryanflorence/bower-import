@@ -4,6 +4,7 @@ var bower = require('bower');
 var detectAmd = require('detect-amd');
 var detectGlobals = require('detect-globals');
 var prompt = require('sync-prompt').prompt;
+var color = require('cli-color');
 
 exports.project = function() {
   bower.commands.list().on('end', function(data) {
@@ -41,7 +42,7 @@ function createShimModule(pkg, mainPath) {
   if (filtered.length) {
     global = filtered[0];
   } else {
-    global = prompt('> what global does '+name+' export? ('+name+'): ');
+    global = prompt(color.blue('> what global does '+name+' export? ('+name+'): '));
     if (global === '') global = name;
   }
   var dependencies = Object.keys(pkg.dependencies);
@@ -50,8 +51,21 @@ function createShimModule(pkg, mainPath) {
   src += 'define('+JSON.stringify(dependencies)+', function() {\n';
   src += code;
   src += '\n\n// exported by bower-import\nreturn window.'+global+' = '+global+';\n})';
-  var location = pkg.canonicalDir+'.js';
-  fs.writeFileSync(location, src);
+  writePackageFile(pkg, src);
+}
+
+function writePackageFile(pkg, src) {
+  var id = pkg.endpoint.name;
+  var base = pkg.canonicalDir.replace(pkg.endpoint.name, '');
+  if (hasRidiculousName(id)) {
+    id = id.replace(/\.js$/, '-js');
+    console.log(color.red("> '"+id+"' will need to be imported with the id '"+id+"'"));
+  }
+  fs.writeFileSync(base+'/'+id+'.js', src);
+}
+
+function hasRidiculousName(name) {
+  return name.match(/\.js$/);
 }
 
 function createAdapterModule(pkg) {
@@ -59,15 +73,13 @@ function createAdapterModule(pkg) {
   console.log('# creating adapter module for '+name);
   var main = getMain(pkg).replace(/\.js$/, '');
   var src = 'define(["'+name+'/'+main+'"], function(module) { return module; });';
-  var location = pkg.canonicalDir+'.js';
-  fs.writeFileSync(location, src);
+  writePackageFile(pkg, src);
 }
 
 function copyMain(pkg) {
   console.log('# copying module '+pkg.endpoint.name);
-  var src = pkg.canonicalDir+'/'+getMain(pkg);
-  var dest = pkg.canonicalDir+'.js';
-  fs.createReadStream(src).pipe(fs.createWriteStream(dest));
+  var src = fs.readFileSync(pkg.canonicalDir+'/'+getMain(pkg)).toString();
+  writePackageFile(pkg, src);
 }
 
 function getMain(dep) {
@@ -111,7 +123,7 @@ function findMainFromPackageFiles(dep) {
 }
 
 function promptForMain(dep) {
-  var userFile = prompt('> no main file detected for '+dep.endpoint.name+'. Please specify the file to use: ');
+  var userFile = prompt(color.blue('> no main file detected for '+dep.endpoint.name+', which file is it?: '));
   if (fs.existsSync(dep.canonicalDir+'/'+userFile)) {
     // yeah yeah, mutating state, but now we won't ask for it twice
     dep.pkgMeta.main = userFile;
