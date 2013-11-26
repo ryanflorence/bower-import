@@ -56,7 +56,7 @@ function createShimModule(pkg, mainPath) {
 
 function writePackageFile(pkg, src) {
   var id = pkg.endpoint.name;
-  var base = pkg.canonicalDir.replace(pkg.endpoint.name, '');
+  var base = pkg.canonicalDir.replace(new RegExp(pkg.endpoint.name + '$'), '');
   if (hasRidiculousName(id)) {
     id = id.replace(/\.js$/, '-js');
     console.log(color.red("> '"+id+"' will need to be imported with the id '"+id+"'"));
